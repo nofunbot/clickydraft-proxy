@@ -1,25 +1,32 @@
 export default async function handler(req, res) {
-  const { url } = req.query;
+  const targetUrl = req.query.url;
 
-  if (!url) {
-    return res.status(400).json({ error: "Missing `url` query param" });
+  if (!targetUrl) {
+    return res.status(400).json({ error: 'Missing `url` query param' });
   }
 
   try {
-    const response = await fetch(url, {
+    console.log(`Fetching: ${targetUrl}`);
+
+    const response = await fetch(targetUrl, {
+      method: 'GET',
       headers: {
-        'User-Agent': 'Mozilla/5.0', // Helps avoid some bot blocks
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+        'Accept': '*/*'
       }
     });
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
     const contentType = response.headers.get('content-type') || 'text/plain';
-    const data = await response.text();
+    const body = await response.text();
 
     res.setHeader('Content-Type', contentType);
-    return res.status(response.status).send(data);
-
-  } catch (err) {
-    console.error('Proxy error:', err);
-    return res.status(500).json({ error: 'fetch failed', details: err.message });
-  }
-}
+    res.status(200).send(body);
+  } catch (error) {
+    console.error(`Proxy error for ${targetUrl}:`, error);
+    res.status(500).json({
+      error: 'fetch failed',
+      details: error.mes
