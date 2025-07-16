@@ -1,3 +1,11 @@
+// api/proxy.js
+import https from 'https';
+import fetch from 'node-fetch';
+
+const agent = new https.Agent({
+  rejectUnauthorized: false // bypass certificate errors
+});
+
 export default async function handler(req, res) {
   try {
     const { url } = req.query;
@@ -6,12 +14,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing `url` query param' });
     }
 
-    console.log("Fetching:", url);
-
     const response = await fetch(url, {
       method: 'GET',
+      agent,
       headers: {
-        'User-Agent': 'Mozilla/5.0',
+        'User-Agent': 'Mozilla/5.0 (proxy)',
         'Accept': '*/*'
       }
     });
@@ -22,10 +29,7 @@ export default async function handler(req, res) {
     res.setHeader('Content-Type', contentType);
     res.status(200).send(text);
   } catch (err) {
-    console.error('Error during fetch:', err);
-    res.status(500).json({
-      error: 'fetch failed',
-      details: err.message || String(err)
-    });
+    console.error('Fetch failed:', err);
+    res.status(500).json({ error: 'fetch failed', details: err.message || String(err) });
   }
 }
