@@ -1,21 +1,27 @@
-export default async function handler(req, res) {
-  const { url } = req.query;
+const https = require('https');
 
-  if (!url) {
-    return res.status(400).json({ error: 'Missing `url` query param' });
+export default async function handler(req, res) {
+  const targetUrl = req.query.url;
+
+  if (!targetUrl) {
+    return res.status(400).json({ error: "Missing `url` query param" });
   }
 
   try {
-    const response = await fetch(decodeURIComponent(url), {
-      method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const agent = new https.Agent({
+      rejectUnauthorized: false, // ignore SSL errors
     });
 
-    const data = await response.json();
-    return res.status(200).json(data);
+    const response = await fetch(targetUrl, {
+      method: 'GET',
+      agent,
+    });
+
+    const data = await response.text(); // Some responses might not be JSON
+
+    res.setHeader("Content-Type", response.headers.get("content-type") || "text/plain");
+    res.status(response.status).send(data);
   } catch (err) {
-    return res.status(500).json({ error: 'Fetch failed', details: err.message });
+    res.status(500).json({ error: "fetch failed", details: err.message });
   }
 }
